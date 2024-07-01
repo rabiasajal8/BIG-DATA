@@ -1,0 +1,36 @@
+DBSCAN
+# Dbscan - case 4
+# Code which output time, purity, distinguishable plot 
+#conclusive line
+
+#importing data
+t = [[0.4, -0.8], [-0.8, 0.4]]
+centers = [(18,18), (10,10), (2,2)] 
+X, y = make_blobs(n_samples=6298, centers=centers)
+X = np.dot(X, t)
+#assigning data
+eps = 0.2
+min_samples = 5
+#performing db scan and noting the starting time
+start_time = time.time()
+dbscan = DBSCAN(eps=eps, min_samples=min_samples)
+y_pred = dbscan.fit_predict(X)
+end_time = time.time()
+#performing db scan and noting the ending time
+# Finding purity
+labels_true = y
+labels_pred = y_pred
+unique_labels = set(labels_pred)
+best_match = {}
+for label in unique_labels:
+    best_match[label] = np.argmax(np.bincount(labels_true[labels_pred == label]))
+
+y_pred_corrected = [best_match[label] for label in y_pred]
+purity = accuracy_score(y, y_pred_corrected)
+#results
+print("Time: {:.2f} seconds".format(end_time - start_time))
+print("Purity: {:.2f}".format(purity))
+#visualization
+plt.scatter(X[:, 0], X[:, 1], c='b')
+plt.title("DBSCAN Clustering")
+plt.show()

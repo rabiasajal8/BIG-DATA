@@ -1,0 +1,19 @@
+!pip install pyspark
+
+from pyspark import SparkContext, SparkConf
+from pyspark.sql import SparkSession
+
+appName="lab"
+master="local[*]"
+conf = SparkConf().setAppName(appName).setMaster(master)
+sc = SparkContext(conf=conf)
+
+from pyspark.sql import SparkSession
+spark = SparkSession.builder.master(master) \
+                    .appName(appName) \
+                    .getOrCreate()
+
+
+df = spark.read.csv("/content/Movies.csv")
+
+df.show(5)

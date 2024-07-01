@@ -1,0 +1,28 @@
+ELBOW METHOD
+
+#elbow method
+
+data = list(zip(x, y))
+inertias = []
+
+for i in range(1,11):
+  kmeans = KMeans(n_clusters=i)
+  kmeans.fit(data)
+  inertias.append(kmeans.inertia_)
+
+plt.plot(range(1,11), inertias, marker='o')
+plt.show()
+kmeans = KMeans(n_clusters=2)
+kmeans.fit(data)
+plt.scatter(x, y, c=kmeans.labels_)
+d = list(zip(x, y))
+print(d)
+inertias = []
+
+for i in range(1,11):
+  kmeans = KMeans(n_clusters=i)
+  kmeans.fit(d)
+  inertias.append(kmeans.inertia_)
+
+plt.plot(range(1,11), inertias, marker='o')
+plt.show()

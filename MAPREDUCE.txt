@@ -1,0 +1,294 @@
+*****************************************************************************************
+Write a map-reduce code to count Words in a file using MRJob library. Write a mapper
+function as well as reducer function.
+pip install mrjob
+%%file countword.py
+from mrjob.job import MRJob
+
+class WordCount(MRJob):
+    
+    def mapper(self, _, line):
+        words = line.split()
+        for word in words:
+            yield word.lower(), 1
+            
+    def reducer(self, key, values):
+        yield key, sum(values)
+        
+if __name__ == '__main__':
+    WordCount.run()
+
+! python "countword.py" "text.txt"
+***********************************************************************************
+Inverting Index of each word in a text file using MRJob:
+class InvertedIndex(MRJob):
+    
+    def mapper(self, _, line):
+        words = line.split()
+        filename = '/content/text.txt'
+        for word in words:
+            yield word.lower(), filename
+            
+    def reducer(self, key, values):
+        yield key, list(set(values))
+        
+if __name__ == '__main__':
+    InvertedIndex.run()
+
+***********************************************************************************
+ Counting words starting with each alphabet in a text file using map and reduce functions separately:
+# Map function
+def word_starts_with_alphabet(line):
+    words = line.split()
+    counts = {}
+    for word in words:
+        if word[0].isalpha():
+            if word[0].lower() in counts:
+                counts[word[0].lower()] += 1
+            else:
+                counts[word[0].lower()] = 1
+    return counts
+
+# Reduce function
+def combine_counts(counts1, counts2):
+    for key in counts2:
+        if key in counts1:
+            counts1[key] += counts2[key]
+        else:
+            counts1[key] = counts2[key]
+    return counts1
+***********************************************************************************
+ Counting all words of length 5 from a text file and displaying them on the screen using map and reduce functions:
+# Map function
+def count_words_of_length_5(line):
+    words = line.split()
+    counts = {}
+    for word in words:
+        if len(word) == 5:
+            if word in counts:
+                counts[word] += 1
+            else:
+                counts[word] = 1
+    return counts
+
+# Reduce function
+def combine_counts(counts1, counts2):
+    for key in counts2:
+        if key in counts1:
+            counts1[key] += counts2[key]
+        else:
+            counts1[key] = counts2[key]
+    return counts1
+
+# Main function
+if __name__ == '__main__':
+    with open('text.txt') as file:
+        lines = file.readlines()
+    word_counts = {}
+    for line in lines:
+        counts = count_words_of_length_5(line)
+        word_counts = combine_counts(word_counts, counts)
+    for word, count in word_counts.items():
+        print(f"{word}: {count}")
+*********************************************************************************
+Write a map-only job to list the name of users who have played more than 5 songs in a day.
+! pip install mrjob
+%%file question1.py
+
+from mrjob.job import MRJob
+
+class Counting_Songs(MRJob):
+    def mapper(self, _, row):
+        row = row.replace(',', ' ')
+        words = row.split()
+        if len(words) >= 7:
+            yield words[0],1
+
+if __name__ == '__main__':
+    Counting_Songs.run()
+! python question1.py data.txt
+********************************************************************************
+Write a map-only job to list the name of users, the date, and the number of songs played on that day.
+%%file question2.py
+
+from mrjob.job import MRJob
+
+class InDayPlayedSongs(MRJob):
+    def mapper(self, _, row):
+        row = row.replace(',', ' ')
+        words = row.split()
+
+        yield f"{words[0]} {words[1]}", len(words[2:])
+if __name__ == '__main__':
+    InDayPlayedSongs.run()
+! python question2.py data.txt
+********************************************************************************
+Write a map-reduce job to list the number of songs played by each user up till now. Also, add a
+combiner.
+%%file question3.py
+from mrjob.job import MRJob
+
+class UsersPlayedSongs(MRJob):
+    def mapper(self,_,row):
+        row = row.replace(',', ' ')
+        words = row.split()
+        yield words[0], len(words[2:])
+    
+    def combiner(self, user, plays):
+        yield user, sum(plays)
+    
+    def reducer(self, user, plays):
+        yield user, sum(plays)
+
+if __name__ == '__main__':
+    UsersPlayedSongs.run()
+! python question3.py data.txt
+**********************************************************************************
+Write a map-reduce to find the average number of songs played daily. Also, add a combiner. For the
+above data, the average no of songs would be = (3+4+2+3+1)/5
+%%file question4.py
+from mrjob.job import MRJob
+from mrjob.step import MRStep
+class SongsAverage(MRJob):
+    def mapper(self,_,row):
+        row = row.replace(',', ' ')
+        words = row.split()
+        yield words[1],len(words[2:])
+    
+    def combiner(self, date, plays):
+        yield date,sum(plays)
+    
+    def reducer(self, dates, plays):
+        yield None,(dates, sum(plays))
+    
+    def average_reducer(self, _, plays):
+        sum,len = 0,0
+        for date, iterator in plays:
+            sum += iterator
+            len += 1
+        yield "The Average is: ", sum/len
+    def steps(self):
+        return [MRStep(mapper=self.mapper,
+                       combiner=self.combiner,
+                       reducer=self.reducer),
+                MRStep(reducer=self.average_reducer)]
+if __name__ == '__main__':
+    SongsAverage.run()
+! python question4.py data.txt
+*******************************************************************************
+Write a map-reduce to find the number of times each song was played. Also, add a combiner.
+%%file question5.py
+from mrjob.job import MRJob
+
+class Counting_Songs(MRJob):
+    def mapper(self,_,row):
+        row = row.replace(',', ' ')
+        words = row.split()
+        for song in words[2:]:
+            yield song,1
+    
+    def combiner(self, song, plays):
+        yield song, sum(plays)
+    
+    def reducer(self, song, plays):
+        yield song, sum(plays)
+
+if __name__ == '__main__':
+    Counting_Songs.run()
+! python question5.py data.txt
+******************************************************************************
+\Write a map-reduce to find the names of the users who have played the maximum number of songs
+in a day. Also, add a combiner.
+%%file question6.py
+from mrjob.job import MRJob
+
+class SongsMax(MRJob):
+
+    def mapper(self, _, row):
+        row = row.replace(',', ' ')
+        words = row.split()
+        yield words[1], (words[0],len(words[2:]))
+
+    def combiner(self, date, user_song_counts):
+        max_user, max_songs = None, 0
+        for user, num_songs in user_song_counts:
+            if num_songs > max_songs:
+                max_user, max_songs = user, num_songs
+        yield date, (max_user, max_songs)
+
+    def reducer(self, date, user_song_counts):
+        max_user, max_songs = None, 0
+        for user, num_songs in user_song_counts:
+            if num_songs > max_songs:
+                max_user, max_songs = user, num_songs
+        yield date, max_user
+
+if __name__ == '__main__':
+    SongsMax.run()
+! python question6.py data.txt
+********************************************************************************
+Write a map-reduce to find the names of the users who have played the maximum number of songs
+up till now. Also, add a combiner.
+%%file question7.py
+from mrjob.job import MRJob
+from mrjob.step import MRStep
+
+class UsersMaxSongs(MRJob):
+    
+    def mapper(self, _, row):
+        row = row.replace(',', ' ')
+        words = row.split()
+        yield words[0], len(words[2:])
+        
+    def combiner(self, user_id, song_count):
+        yield user_id, sum(song_count)
+        
+    def reducer(self, user_id, song_count):
+        yield None, (user_id, sum(song_count))
+        
+    def Maximum_Finding(self, _, user_counts):
+        max_user, max_count = max(user_counts, key=lambda x: x[1])
+        yield max_user, max_count
+        
+    def steps(self):
+        return [
+            MRStep(mapper=self.mapper,
+                   combiner=self.combiner,
+                   reducer=self.reducer),
+            MRStep(reducer=self.Maximum_Finding)
+        ]
+
+if __name__ == '__main__':
+    UsersMaxSongs.run()
+! python question7.py data.txt
+************************************************************************************
+Write a map-reduce to find the names of the users who have played the maximum number of songs
+in a day. Also, add a combiner.
+%%file question8.py
+from mrjob.job import MRJob
+
+class DailyMaxSongs(MRJob):
+
+    def mapper(self, _, row):
+        row = row.replace(',', ' ')
+        words = row.split()
+        yield words[1], (words[0],len(words[2:]))
+
+    def combiner(self, date, user_song_counts):
+        max_user, max_songs = None, 0
+        for user, num_songs in user_song_counts:
+            if num_songs > max_songs:
+                max_user, max_songs = user, num_songs
+        yield date, (max_user, max_songs)
+
+    def reducer(self, date, user_song_counts):
+        max_user, max_songs = None, 0
+        for user, num_songs in user_song_counts:
+            if num_songs > max_songs:
+                max_user, max_songs = user, num_songs
+        yield date, max_user
+
+if __name__ == '__main__':
+    DailyMaxSongs.run()
+! python question8.py data.txt
+**************************************************************************************
